@@ -1,10 +1,30 @@
 const { Client } = require("@notionhq/client")
+const imgbbUploader = require("imgbb-uploader")
 
 const notion = new Client ({auth: process.env.NOTION_API_KEY})
 
-const page1 = '0a4dbd72ab364e0d8a7ec7a3ebf8b8c3'
+const page1 = 'b6519b79f0e240c08f8ac77b323df782'
 const page2 = '4dee562ce20c415d99018496ea6ddf26'
 const divider = {type:'divider', divider:{}}
+
+async function imageReplace (block){
+  const source_imageUrl = block.image.file.url
+  block.image.type = 'external'
+  block.image.external = {}
+  
+  const reupload = await imgbbUploader({
+    apiKey: process.env.IMGBB_API_KEY,
+    imageUrl: source_imageUrl
+  });
+
+  console.log(reupload)
+
+  block.image.external.url = reupload.url
+
+  delete block.image.file
+
+  console.log('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+}
 
 async function paste (page_id_from, page_id_to){
     
@@ -20,6 +40,13 @@ async function paste (page_id_from, page_id_to){
     const source_chidren = await notion.blocks.children.list({
       block_id: page_id_from,
     });
+
+    let source_chidrenWRehostedImages = source_chidren.results
+    for (let i = 0; i < source_chidrenWRehostedImages.length; i++){
+      if (source_chidrenWRehostedImages[i].image.type === 'file'){
+        await imageReplace(source_chidrenWRehostedImages[i])
+      }
+    }
 
     //Make a title block out of the source's title
     let title = {
@@ -79,7 +106,7 @@ async function paste (page_id_from, page_id_to){
       release_date,
       ...changes,
       divider,
-      ...source_chidren.results
+      ...source_chidrenWRehostedImages
       );
 
     //Paste the content to the target page
@@ -94,24 +121,24 @@ async function paste (page_id_from, page_id_to){
 
   paste(page1,page2);
 
-    // let imageReplacer = response.results
-    // console.log()
+// let imageReplacer = response.results
+// console.log()
 
-    // for (let i = 0; i < imageReplacer.length; i++) {
-    //     if (imageReplacer[i].image){
-    //         console.log(imageReplacer[i])
-    //         console.log('------------------------------------')
-    //         imageReplacer[i].image.type = "external";
-    //         imageReplacer[i].image.external = {};
-    //         imageReplacer[i].image.external.url = 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_light_color_272x92dp.png'
-            
-    //         delete imageReplacer[i].image.file
-            
-    //     } 
-    // }
+// for (let i = 0; i < imageReplacer.length; i++) {
+//     if (imageReplacer[i].image){
+//         console.log(imageReplacer[i])
+//         console.log('------------------------------------')
+//         imageReplacer[i].image.type = "external";
+//         imageReplacer[i].image.external = {};
+//         imageReplacer[i].image.external.url = 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_light_color_272x92dp.png'
+      
+//         delete imageReplacer[i].image.file
+      
+//     } 
+// }
 
 
-// async function updateImgUrl (block, url) {
+// async function updateimageUrl (block, url) {
 //     const response = await notion.blocks.update({
 //         block_id: block,
 //         image: {
@@ -124,7 +151,7 @@ async function paste (page_id_from, page_id_to){
 // console.log(response)
 // }
 
-// updateImgUrl(imgBlock,imgUrl)
+// updateimageUrl(imageBlock,imageUrl)
 // async function b (){
 // const response = await notion.blocks.children.list({
 //           block_id: page1,
@@ -134,7 +161,7 @@ async function paste (page_id_from, page_id_to){
 // }
 
 // async function a (){
-//     const blockId = imgBlock;
+//     const blockId = imageBlock;
 //     const response = await notion.blocks.retrieve({
 //       block_id: blockId,
 //     });
