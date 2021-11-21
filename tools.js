@@ -1,18 +1,128 @@
 
+var createParentPage_function = async function (notion,product_name,versions){
+    let page_title
+    if (versions.length == 1){
+        page_title = 'Changelog: ' + versions[0]
+    } else {
+        page_title = 'Changelog: v' + versions[0] + ' -> v' + versions.slice(-1)
+    }
+    console.log(page_title)
+    const response = await notion.pages.create({
+        parent: {
+          database_id: process.env.NOTION_PASTE_DB_ID,
+        },
+        properties: {
+          Product: {
+            select: {
+                name: product_name
+            }
+          },
+          Title: {
+            title: [
+              {
+                text: {
+                  content: page_title,
+                },
+              },
+            ],
+          }
+        
+        },
+      });
+    
+    return response.id
+}
 
-var paste_function = async function (notion, page_id_from, page_id_to){
+
+var scanDB_function = async function (notion, db){
+    const response_retrieve = await notion.databases.retrieve({
+        database_id: db
+    }) 
+    console.log('Scanned database: ' + response_retrieve.title[0].text.content)
+ 
+    let db_data = {product_names:[], page_ids:[]}
+    for (let i = 0; i < response_retrieve.properties.Product.select.options.length; i++){
+        db_data.product_names.push(response_retrieve.properties.Product.select.options[i].name)
+    }
+
+    //CHECK HERE: PAY ATTENTION to https://developers.notion.com/reference/pagination
+    //Looks like the fonction below may not work with large lists
+    //Consider modifying it via pagination
+    //The same shit might apply to page children blocks
+    const response_query = await notion.databases.query({
+        database_id: db
+    }) 
+    for (let i = 0; i < response_query.results.length; i++){
+        db_data.page_ids.push(response_query.results[i].id)
+    }
+
+    return db_data    
+}
+
+var getVersions_function = async function (notion,db,product_name){
+    const response = await notion.databases.query({
+        database_id: db,
+        filter:{
+            property: 'Product',
+            select: { equals: product_name }
+        },
+        "sorts": [
+            {
+                property: "Date",
+                direction: "descending"
+            }
+        ]
+    })
+    let pages = response.results
+    let versions = []
+
+    for (i = 0; i < pages.length; i++){
+        versions.push(pages[i].properties.Version.title[0].plain_text)
+    }
+    return versions
+}
+
+var getPagesRequestedVersions_function = async function (notion,db,product_name,requestedVersions){
+    const response = await notion.databases.query({
+        database_id: db,
+        filter:{
+            property: 'Product',
+            select: { equals: product_name }
+        },
+        "sorts": [
+            {
+                property: "Date",
+                direction: "descending"
+            }
+        ]
+    })
+
+    let requestedPagesVersions_list = []
+
+    for (let i = 0; i < requestedVersions.length; i++){
+        for (let j = 0; j < response.results.length; j++){
+            if (requestedVersions[i] == response.results[j].properties.Version.title[0].plain_text){
+                console
+                requestedPagesVersions_list.push(response.results[j].id)
+            }
+        }
+    }
+    return requestedPagesVersions_list
+}
+
+var paste_function = async function (notion, page_from, page_to){
     const imgbbUploader = require("imgbb-uploader")
     let results = []
     const divider = {type:'divider', divider:{}}
     
     //Take source page's brief to get meta info (title, changes, etc.)
     const source_page = await notion.pages.retrieve({ 
-      page_id: page_id_from
+      page_id: page_from
     });
 
     //Take source page's content (what's below the title)
     const source_chidren = await notion.blocks.children.list({
-      block_id: page_id_from,
+      block_id: page_from,
     });
 
     //Rehosting images to imgBB
@@ -163,11 +273,17 @@ var paste_function = async function (notion, page_id_from, page_id_to){
 
     //Paste the content to the target page
     notion.blocks.children.append({
-        block_id: page_id_to,
+        block_id: page_to,
         children: results
     })
 
     console.log('Changelog for ' + title_text + ' has been added' )
   };
 
-module.exports = {paste: paste_function}
+module.exports = {
+    scan: scanDB_function,
+    paste: paste_function,
+    getVersions: getVersions_function,
+    getPagesRequestedVersions: getPagesRequestedVersions_function,
+    createParentPage: createParentPage_function
+}
