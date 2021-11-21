@@ -115,33 +115,36 @@ async function paste (page_id_from, page_id_to){
     let source_changes = source_page.properties.Changes.multi_select
     let breakingMarker = false  
     for (let i = 0; i < source_changes.length; i++){
-      if (source_changes[i].name != 'Breaking changes'){
-        if (i > 0){
-          changes.standard.paragraph.text.push(
-            {
-              type: "text",
-              text:{
-                content: ' - ',
-              },
-              annotations:{
-                color: 'default'
-              }
-            }
-          )
-        }
+      if (source_changes[i].name == 'Breaking changes'){
+        breakingMarker = true
+        source_changes.splice(i, 1)
+      }
+    }
+    for (let i = 0; i < source_changes.length; i++){
+      if (i > 0){
         changes.standard.paragraph.text.push(
           {
             type: "text",
             text:{
-              content: source_changes[i].name,
+              content: ' - ',
             },
             annotations:{
-              color: source_changes[i].color
+              color: 'default'
             }
           }
         )
-      } else {breakingMarker = true}
-      
+      }
+      changes.standard.paragraph.text.push(
+        {
+          type: "text",
+          text:{
+            content: source_changes[i].name,
+          },
+          annotations:{
+            color: source_changes[i].color
+          }
+        }
+      )
     }
 
 
@@ -150,12 +153,14 @@ async function paste (page_id_from, page_id_to){
       title,
       release_date
       )
-    if (breakingMarker){
+    if (breakingMarker && changes.standard.paragraph.text.length > 0){
       results.push(
         changes.breaking,
         changes.standard
       )
-    } else { results.push(changes.standard) }
+    } else if (breakingMarker){ results.push(changes.breaking)
+    } else {results.push(changes.standard)}
+
 
     results.push(
       divider,
