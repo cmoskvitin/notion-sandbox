@@ -3,7 +3,7 @@ const imgbbUploader = require("imgbb-uploader")
 
 const notion = new Client ({auth: process.env.NOTION_API_KEY})
 
-const page1 = 'b6519b79f0e240c08f8ac77b323df782'
+const page1 = 'c59ac8965678458f87692bbdab8252b3'
 const page2 = '4dee562ce20c415d99018496ea6ddf26'
 const divider = {type:'divider', divider:{}}
 
@@ -55,6 +55,7 @@ async function paste (page_id_from, page_id_to){
         }]
       }
     }
+    let title_text = title.heading_1.text[0].text.content
 
     //Make a release date block out of the source's date property
     let release_date = {
@@ -70,38 +71,96 @@ async function paste (page_id_from, page_id_to){
       }
     }
 
-    //Make an array of text blocks out of Chagnges properties of the source
-    let changes = []
-    let source_changes = source_page.properties.Changes.multi_select;  
-    for (let i = 0; i < source_changes.length; i++){
-      changes.push(
-        {
-          type:'quote',
-          quote:{
-            text:[{
-              type: 'text',
-              text: {
-                  content: source_changes[i].name,
-                  link: null
-              },
-              annotations: {
-                bold: true,
-                color: source_changes[i].color
-              }
-            }]
+    //Make the Changes subtitle. Highlight breaking changes with a separate paragraph.
+    let changes = { breaking:{}, standard:{} }
+    changes.breaking = {
+      type: "paragraph",
+      paragraph: {
+        text:[
+          {
+            type: "text",
+            text:{
+              content: "!! ",
+            },
+            annotations:{
+              bold: true,
+              color: "red"
+            }
+          },
+          {
+            type: "text",
+            text:{
+              content: "Breaking changes",
+            },
+            annotations:{
+              bold: true,
+              color: "pink"
+            }
+          },
+          {
+            type: "text",
+            text:{
+              content: " !!",
+            },
+            annotations:{
+              bold: true,
+              color: "red"
+            }
           }
+        ]
+      }
+    };
+    changes.standard = { type: "paragraph", paragraph: { text:[] } }
+
+    let source_changes = source_page.properties.Changes.multi_select
+    let breakingMarker = false  
+    for (let i = 0; i < source_changes.length; i++){
+      if (source_changes[i].name != 'Breaking changes'){
+        if (i > 0){
+          changes.standard.paragraph.text.push(
+            {
+              type: "text",
+              text:{
+                content: ' - ',
+              },
+              annotations:{
+                color: 'default'
+              }
+            }
+          )
         }
-      )
+        changes.standard.paragraph.text.push(
+          {
+            type: "text",
+            text:{
+              content: source_changes[i].name,
+            },
+            annotations:{
+              color: source_changes[i].color
+            }
+          }
+        )
+      } else {breakingMarker = true}
+      
     }
+
 
     //Compose target page's content
     results.push(
       title,
-      release_date,
-      ...changes,
+      release_date
+      )
+    if (breakingMarker){
+      results.push(
+        changes.breaking,
+        changes.standard
+      )
+    } else { results.push(changes.standard) }
+
+    results.push(
       divider,
       ...source_chidrenWRehostedImages
-      );
+      )
 
     //Paste the content to the target page
     notion.blocks.children.append({
@@ -109,6 +168,7 @@ async function paste (page_id_from, page_id_to){
         children: results
     })
 
+    console.log('Changelog for ' + title_text + ' has been added' )
   };
 
   paste(page1,page2);
