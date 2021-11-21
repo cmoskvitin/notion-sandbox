@@ -4,9 +4,10 @@ var createParentPage_function = async function (notion,product_name,versions){
     if (versions.length == 1){
         page_title = 'Changelog: ' + versions[0]
     } else {
-        page_title = 'Changelog: v' + versions[0] + ' -> v' + versions.slice(-1)
+        page_title = 'Changelog: v' + versions.slice(-1) + ' ... v' + versions[0]
     }
-    console.log(page_title)
+    
+
     const response = await notion.pages.create({
         parent: {
           database_id: process.env.NOTION_PASTE_DB_ID,
@@ -30,7 +31,13 @@ var createParentPage_function = async function (notion,product_name,versions){
         },
       });
     
-    return response.id
+    const parentPageAddresses = {
+      id: response.id,
+      url: response.url,
+      title: page_title
+    }
+    
+    return parentPageAddresses
 }
 
 
@@ -40,23 +47,12 @@ var scanDB_function = async function (notion, db){
     }) 
     console.log('Scanned database: ' + response_retrieve.title[0].text.content)
  
-    let db_data = {product_names:[], page_ids:[]}
+    let product_names = []
     for (let i = 0; i < response_retrieve.properties.Product.select.options.length; i++){
-        db_data.product_names.push(response_retrieve.properties.Product.select.options[i].name)
+        product_names.push(response_retrieve.properties.Product.select.options[i].name)
     }
 
-    //CHECK HERE: PAY ATTENTION to https://developers.notion.com/reference/pagination
-    //Looks like the fonction below may not work with large lists
-    //Consider modifying it via pagination
-    //The same shit might apply to page children blocks
-    const response_query = await notion.databases.query({
-        database_id: db
-    }) 
-    for (let i = 0; i < response_query.results.length; i++){
-        db_data.page_ids.push(response_query.results[i].id)
-    }
-
-    return db_data    
+    return product_names    
 }
 
 var getVersions_function = async function (notion,db,product_name){
