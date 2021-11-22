@@ -22,7 +22,7 @@ async function main (){
     let product_name //PRODUCT NAME
     prompt.start(); prompt_result = await prompt.get('ID');
     product_name = products_list[prompt_result.ID]
-    console.log('You\'ve selected ' + product_name + ', checking changelogs...')
+    console.log(`Checking changelogs of ${product_name}...`)
 
     //--------------------- UI: Show the list of versions
     const product_versions = await tools.getVersions(notion,db,products_list[prompt_result.ID])
