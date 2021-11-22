@@ -4,7 +4,7 @@ var createParentPage_function = async function (notion,product_name,versions){
     if (versions.length == 1){
         page_title = 'Changelog: ' + versions[0]
     } else {
-        page_title = 'Changelog: v' + versions.slice(-1) + ' ... v' + versions[0]
+        page_title = `Changelog: v${versions.slice(-1)} -> v${versions[0]}`
     }
     
 

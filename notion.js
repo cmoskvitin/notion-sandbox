@@ -4,7 +4,7 @@ const prompt = require("prompt")
 
 const notion = new Client ({auth: process.env.NOTION_API_KEY})
 
-console.log('Working...')
+console.log('Loading...')
 
 async function main (){
     const db = process.env.NOTION_SOURCE_DB_ID
@@ -36,7 +36,7 @@ async function main (){
     prompt.start(); prompt_result = await prompt.get('Versions');
     
     console.log('Pasting...')
-
+    setTimeout(() => {console.log("This a while might take, patient you must be ^o^")}, 2000);
     //Get pageIDs of requested changelogs
     //Create an empty page where the changelogs will be stored
     let requestedVersions = prompt_result.Versions.split(' ')
@@ -55,7 +55,7 @@ async function main (){
     }
 
     //--------------------- UI: Show final page address
-    console.log('Done!\nThe changelog \'' + parentPage.title + '\' waits for you here: ' + parentPage.url)    
+    console.log('Done!\nThe changelog \'' + product_name + ' | ' + parentPage.title + '\' is waiting for you here:\n' + parentPage.url)    
 }
 
 main()
