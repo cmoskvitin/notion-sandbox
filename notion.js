@@ -11,7 +11,7 @@ async function main (){
     
     //Get main database's brief to pull out product names
     const products_list = await tools.scan(notion, db)
-    console.log('The database has the following products:\n')
+    console.log('Product list:\n')
     for (let i = 0; i < products_list.length; i++){
         console.log(i + ' - ' + products_list[i])
     }
@@ -19,7 +19,7 @@ async function main (){
     //--------------------- UI: Ask user to select one of the products
     console.log('\nInput an ID of a product you want changelogs for:\n')
     let prompt_result
-    let product_name //PRODUCT NAME
+    let product_name
     prompt.start(); prompt_result = await prompt.get('ID');
     product_name = products_list[prompt_result.ID]
     console.log(`Checking changelogs of ${product_name}...`)
@@ -27,16 +27,19 @@ async function main (){
     //--------------------- UI: Show the list of versions
     const product_versions = await tools.getVersions(notion,db,products_list[prompt_result.ID])
     console.log('There are the following versions:\n')
+    let s = ''
     for (let i = 0; i < product_versions.length; i++){
         console.log('- ' + product_versions[i])
+        s += (product_versions[i] + ' ')
     }
+    console.log("\x1b[2m",'Copypaste:' + s)
     
     //--------------------- UI: Ask user to select required versions
-    console.log('\nInput required versions in the format: \'version1 version2 etc.\' (with spaces)\nFor example: 1.0 1.2.3 2.2.0\n')
+    console.log("\x1b[0m",'\nInput required versions in the format: \'version1 version2 etc.\' (with spaces)\nExample: 1.0 1.2.3 2.2.0\n',"\x1b[2m",'(Like in the \'Copypaste\' string above)\n',"\x1b[0m")
     prompt.start(); prompt_result = await prompt.get('Versions');
     
-    console.log('Pasting...')
-    setTimeout(() => {console.log("This a while might take, patient you must be ^o^")}, 2000);
+    console.log("\x1b[0m",'Pasting...')
+    setTimeout(() => {console.log("This a while might take, patient you must be","\x1b[32m", "^o^","\x1b[0m")}, 2000);
     //Get pageIDs of requested changelogs
     //Create an empty page where the changelogs will be stored
     let requestedVersions = prompt_result.Versions.split(' ')

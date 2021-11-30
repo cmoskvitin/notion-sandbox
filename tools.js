@@ -1,12 +1,11 @@
 
-var createParentPage_function = async function (notion,product_name,versions){
-    let page_title
+var createParentPage_function = async function (notion,productName,versions){
+    let pageTitle
     if (versions.length == 1){
-        page_title = 'Changelog: ' + versions[0]
+        pageTitle = 'Changelog: ' + versions[0]
     } else {
-        page_title = `Changelog: v${versions.slice(-1)} -> v${versions[0]}`
+        pageTitle = `Changelog: v${versions.slice(-1)} -> v${versions[0]}`
     }
-    
 
     const response = await notion.pages.create({
         parent: {
@@ -15,14 +14,14 @@ var createParentPage_function = async function (notion,product_name,versions){
         properties: {
           Product: {
             select: {
-                name: product_name
+                name: productName
             }
           },
           Title: {
             title: [
               {
                 text: {
-                  content: page_title,
+                  content: pageTitle,
                 },
               },
             ],
@@ -31,36 +30,37 @@ var createParentPage_function = async function (notion,product_name,versions){
         },
       });
     
-    const parentPageAddresses = {
+    const parentPageCreds = {
       id: response.id,
       url: response.url,
-      title: page_title
+      title: pageTitle
     }
     
-    return parentPageAddresses
+    return parentPageCreds
 }
 
 
 var scanDB_function = async function (notion, db){
-    const response_retrieve = await notion.databases.retrieve({
+    const response = await notion.databases.retrieve({
         database_id: db
-    }) 
-    console.log('Scanned database: ' + response_retrieve.title[0].text.content)
- 
-    let product_names = []
-    for (let i = 0; i < response_retrieve.properties.Product.select.options.length; i++){
-        product_names.push(response_retrieve.properties.Product.select.options[i].name)
+    })
+    
+    let responseNames = response.properties.Product.select.options
+    let products = []
+
+    for (let i = 0; i < responseNames.length; i++){
+        products.push(responseNames[i].name)
     }
 
-    return product_names    
+    return products    
 }
 
-var getVersions_function = async function (notion,db,product_name){
+var getVersions_function = async function (notion,db,productName){
     const response = await notion.databases.query({
         database_id: db,
         filter:{
             property: 'Product',
-            select: { equals: product_name }
+            select: { equals: productName }
         },
         "sorts": [
             {
