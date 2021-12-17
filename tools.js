@@ -1,11 +1,6 @@
 
-var createParentPage_function = async function (notion,productName,versions){
-    let pageTitle
-    if (versions.length == 1){
-        pageTitle = 'Changelog: ' + versions[0]
-    } else {
-        pageTitle = `Changelog: v${versions.slice(-1)} -> v${versions[0]}`
-    }
+var createParentPage_function = async function (notion,productName){
+    let pageTitle = `${productName} changelog`
 
     const response = await notion.pages.create({
         parent: {
@@ -109,6 +104,7 @@ var getPagesRequestedVersions_function = async function (notion,db,product_name,
 var paste_function = async function (notion, page_from, page_to){
     const imgbbUploader = require("imgbb-uploader")
     let results = []
+
     const divider = {type:'divider', divider:{}}
     
     //Take source page's brief to get meta info (title, changes, etc.)
@@ -143,19 +139,17 @@ var paste_function = async function (notion, page_from, page_to){
     }
 
     //Make a title block out of the source's title
+    //------------------------------------------------PARENT TOGGLE
     let title = {
-      type: 'heading_1',
-      heading_1:{
+      type: 'toggle',
+      toggle:{
         text: [{
-          type:"text",
-          text: {
-            content: "Version " + source_page.properties.Version.title[0].plain_text,
-            link: null
-          }
+          text: {content:source_page.properties.Version.title[0].plain_text},
+          annotations: {bold: true}
         }]
       }
     }
-    let title_text = title.heading_1.text[0].text.content
+    let title_text = title.toggle.text[0].text.content;
 
     //Make a release date block out of the source's date property
     let release_date = {
@@ -164,8 +158,7 @@ var paste_function = async function (notion, page_from, page_to){
         text: [{
           type:"text",
           text: {
-            content: "Released on " + source_page.properties.Date.date.start,
-            link: null
+            content: "🗓️ " + source_page.properties.Date.date.start,
           }
         }]
       }
@@ -179,38 +172,16 @@ var paste_function = async function (notion, page_from, page_to){
         text:[
           {
             type: "text",
-            text:{
-              content: "!! ",
-            },
-            annotations:{
-              bold: true,
-              color: "red"
-            }
-          },
-          {
-            type: "text",
-            text:{
-              content: "Breaking changes",
-            },
-            annotations:{
-              bold: true,
-              color: "pink"
-            }
-          },
-          {
-            type: "text",
-            text:{
-              content: " !!",
-            },
-            annotations:{
-              bold: true,
-              color: "red"
-            }
+            text:{content: "‼️ Breaking changes"},
+            annotations:{ bold: true, color: 'red'}
           }
         ]
       }
     };
-    changes.standard = { type: "paragraph", paragraph: { text:[] } }
+    
+    changes.standard = { type: "paragraph", paragraph: { text:[{text: {content: ''}}] } }
+    let changes_standard_text = changes.standard.paragraph.text[0].text.content
+    changes_standard_text += '⬆️ '
 
     let source_changes = source_page.properties.Changes.multi_select
     let breakingMarker = false  
@@ -221,39 +192,16 @@ var paste_function = async function (notion, page_from, page_to){
       }
     }
     for (let i = 0; i < source_changes.length; i++){
-      if (i > 0){
-        changes.standard.paragraph.text.push(
-          {
-            type: "text",
-            text:{
-              content: ' - ',
-            },
-            annotations:{
-              color: 'default'
-            }
-          }
-        )
-      }
-      changes.standard.paragraph.text.push(
-        {
-          type: "text",
-          text:{
-            content: source_changes[i].name,
-          },
-          annotations:{
-            color: source_changes[i].color
-          }
-        }
-      )
+      if (i > 0) { changes_standard_text += ', ' }
+      changes_standard_text += source_changes[i].name
     }
 
+    changes.standard.paragraph.text[0].text.content = changes_standard_text
 
     //Compose target page's content
-    results.push(
-      title,
-      release_date
-      )
-    if (breakingMarker && changes.standard.paragraph.text.length > 0){
+    results.push(release_date)
+
+    if (breakingMarker && changes_standard_text.length > 5){
       results.push(
         changes.breaking,
         changes.standard
@@ -261,15 +209,19 @@ var paste_function = async function (notion, page_from, page_to){
     } else if (breakingMarker){ results.push(changes.breaking)
     } else {results.push(changes.standard)}
 
+    results.push(...source_chidrenWRehostedImages)
+    
+    //Append PARENT TOGGLE
+    let parent_toggle_response = await notion.blocks.children.append({
+      block_id: page_to,
+      children: [title, divider]
+    })
 
-    results.push(
-      divider,
-      ...source_chidrenWRehostedImages
-      )
+    let parent_toggle_id = parent_toggle_response.results[0].id
 
     //Paste the content to the target page
     notion.blocks.children.append({
-        block_id: page_to,
+        block_id: parent_toggle_id,
         children: results
     })
 

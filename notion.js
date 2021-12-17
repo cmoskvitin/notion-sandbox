@@ -44,7 +44,7 @@ async function main (){
     //Create an empty page where the changelogs will be stored
     let requestedVersions = prompt_result.Versions.split(' ')
     const requestedPages_list = await tools.getPagesRequestedVersions(notion,db,product_name,requestedVersions)
-    const parentPage = await tools.createParentPage(notion,product_name,requestedVersions)
+    const parentPage = await tools.createParentPage(notion,product_name)
 
     //Pasting
     for (let i = 0; i < requestedPages_list.length; i++){
@@ -58,7 +58,7 @@ async function main (){
     }
 
     //--------------------- UI: Show final page address
-    console.log('Done!\nThe changelog \'' + product_name + ' | ' + parentPage.title + '\' is waiting for you here:\n' + parentPage.url)    
+    console.log(`Done!\nThe changelog \'${product_name} | ${parentPage.title}\' is waiting for you here:\n${parentPage.url}`)    
 }
 
 main()
